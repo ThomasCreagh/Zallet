@@ -8,16 +8,15 @@ pub const Transaction = struct {
 pub const Block = struct {
     previous_hash: ?[32]u8,
     transaction: Transaction,
+    const timestamp: i128 = std.time.nanoTimestamp();
     pub fn hash(self: Block) [32]u8 {
         var sha256State = sha2.Sha256.init(sha2.Sha256.Options{});
-        std.debug.print("BYTES: {any}\n\n", .{ std.mem.asBytes(&self) });
         sha256State.update(std.mem.asBytes(&self));
         var digest: [32]u8 = undefined;
         sha256State.final(&digest);
         return digest;
     }
 };
-    // const timestamp: i128 = std.time.nanoTimestamp();
 pub const Chain = struct {
     chain: std.ArrayList(Block),
     pub fn init(self: *Chain) !void {
