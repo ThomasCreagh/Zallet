@@ -8,7 +8,7 @@ pub const Transaction = struct {
 pub const Block = struct {
     previous_hash: ?[32]u8,
     transaction: Transaction,
-    const timestamp: i128 = std.time.nanoTimestamp();
+    timestamp: i128,
     pub fn hash(self: Block) [32]u8 {
         var sha256State = sha2.Sha256.init(sha2.Sha256.Options{});
         sha256State.update(std.mem.asBytes(&self));
@@ -20,16 +20,21 @@ pub const Block = struct {
 pub const Chain = struct {
     chain: std.ArrayList(Block),
     pub fn init(self: *Chain) !void {
-        try self.chain.append(Block{ .previous_hash = null, .transaction = Transaction{
-            .amount = 100,
-            .payer = 0,
-            .payee = 1,
-        } });
+        try self.chain.append(Block{
+            .previous_hash = null,
+            .transaction = Transaction{
+                .amount = 100,
+                .payer = 0,
+                .payee = 1,
+            },
+            .timestamp = std.time.nanoTimestamp(),
+        });
     }
     pub fn add(self: *Chain, transaction: Transaction) !void {
         try self.chain.append(Block{
             .previous_hash = self.getLastBlock().hash(),
             .transaction = transaction,
+            .timestamp = std.time.nanoTimestamp(),
         });
     }
     pub fn getLastBlock(self: Chain) Block {
