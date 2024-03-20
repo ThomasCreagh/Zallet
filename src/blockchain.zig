@@ -1,5 +1,9 @@
 const std = @import("std");
-const sha2 = std.crypto.hash.sha2;
+const crypto = std.crypto;
+const Sha256 = crypto.hash.sha2.Sha256;
+const Ed25519 = crypto.sign.Ed25519;
+const asBytes = std.mem.asBytes;
+
 pub const Transaction = struct {
     amount: u64,
     payer: u256,
@@ -10,8 +14,8 @@ pub const Block = struct {
     transaction: Transaction,
     timestamp: i128,
     pub fn hash(self: Block) [32]u8 {
-        var sha256State = sha2.Sha256.init(sha2.Sha256.Options{});
-        sha256State.update(std.mem.asBytes(&self));
+        var sha256State = Sha256.init(Sha256.Options{});
+        sha256State.update(asBytes(&self));
         var digest: [32]u8 = undefined;
         sha256State.final(&digest);
         return digest;
@@ -41,4 +45,12 @@ pub const Chain = struct {
         return self.chain.getLast();
     }
 };
-pub const Wallet = struct {};
+pub const Wallet = struct {
+    public_key: Ed25519.PublicKey = undefined,
+    secret_key: Ed25519.SecretKey = undefined,
+    pub fn init(self: *Wallet) !void {
+        const keys = try Ed25519.KeyPair.create(null);
+        self.public_key = keys.public_key;
+        self.secret_key = keys.secret_key;
+    }
+};

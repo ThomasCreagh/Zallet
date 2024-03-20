@@ -8,17 +8,17 @@ pub fn main() !void {
     };
     defer block_chain.chain.deinit();
     try block_chain.init();
-    print("{any}\n\n{s}\n\n", .{ block_chain.getLastBlock(), block_chain.getLastBlock().hash() });
     try block_chain.add(blockchain.Transaction{
         .amount = 1000,
         .payer = 2,
         .payee = 3,
     });
-    print("{any}\n\n{s}\n\n", .{ block_chain.getLastBlock(), block_chain.getLastBlock().hash() });
     try block_chain.add(blockchain.Transaction{
         .amount = 2000,
         .payer = 4,
         .payee = 5,
     });
-    print("{any}\n\n{s}\n\n", .{ block_chain.getLastBlock(), block_chain.getLastBlock().hash() });
+    var wallet = blockchain.Wallet{};
+    try wallet.init();
+    print("Wallet: {any}\n\n", .{ wallet });
 }
