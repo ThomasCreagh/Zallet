@@ -6,8 +6,8 @@ const asBytes = std.mem.asBytes;
 
 pub const Transaction = struct {
     amount: u64,
-    payer: u256,
-    payee: u256,
+    payer: Ed25519.PublicKey,
+    payee: Ed25519.PublicKey,
 };
 pub const Block = struct {
     previous_hash: ?[32]u8,
@@ -22,19 +22,21 @@ pub const Block = struct {
     }
 };
 pub const Chain = struct {
-    chain: std.ArrayList(Block),
+    chain: std.ArrayList(Block) = undefined,
     pub fn init(self: *Chain) !void {
+        const keys = try Ed25519.KeyPair.create(null);
         try self.chain.append(Block{
             .previous_hash = null,
             .transaction = Transaction{
                 .amount = 100,
-                .payer = 0,
-                .payee = 1,
+                .payer = keys.public_key,
+                .payee = keys.public_key,
             },
             .timestamp = std.time.nanoTimestamp(),
         });
     }
-    pub fn add(self: *Chain, transaction: Transaction) !void {
+    pub fn add(self: *Chain, transaction: Transaction, senders_public_key: Ed25519.PublicKey, signature: Ed25519.Signature) !void {
+        try signature.verify(asBytes(&transaction), senders_public_key);
         try self.chain.append(Block{
             .previous_hash = self.getLastBlock().hash(),
             .transaction = transaction,
@@ -46,11 +48,17 @@ pub const Chain = struct {
     }
 };
 pub const Wallet = struct {
-    public_key: Ed25519.PublicKey = undefined,
-    secret_key: Ed25519.SecretKey = undefined,
+    key_pair: Ed25519.KeyPair = undefined,
     pub fn init(self: *Wallet) !void {
-        const keys = try Ed25519.KeyPair.create(null);
-        self.public_key = keys.public_key;
-        self.secret_key = keys.secret_key;
+        self.key_pair = try Ed25519.KeyPair.create(null);
+    }
+    pub fn sendMoney(self: Wallet, chain: *Chain, amount: u64, payee_public_key: Ed25519.PublicKey) !void {
+        const transaction = Transaction{
+            .amount = amount,
+            .payer = self.key_pair.public_key,
+            .payee = payee_public_key,
+        };
+        const signature = try self.key_pair.sign(asBytes(&transaction), null); // this is a deterministic signiture
+        try chain.add(transaction, self.key_pair.public_key, signature);
     }
 };
