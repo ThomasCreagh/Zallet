@@ -10,6 +10,7 @@ pub const Transaction = struct {
     payee: Ed25519.PublicKey,
 };
 pub const Block = struct {
+    nonce: u64 = undefined,
     previous_hash: ?[32]u8,
     transaction: Transaction,
     timestamp: i128,
