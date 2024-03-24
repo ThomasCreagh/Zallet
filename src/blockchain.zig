@@ -1,4 +1,5 @@
 const std = @import("std");
+const print = std.debug.print;
 const crypto = std.crypto;
 const Sha256 = crypto.hash.sha2.Sha256;
 const Ed25519 = crypto.sign.Ed25519;
@@ -21,9 +22,31 @@ pub const Block = struct {
         sha256State.final(&digest);
         return digest;
     }
+    pub fn mine(self: *Block, valid_zeros: u8) void {
+        print("(T) mining...\t", .{});
+        self.nonce = 0;
+        var valid = false;
+
+        while (!valid) {
+            self.nonce += 1;
+            const hashed_block = self.hash();
+            var zero_correct = true;
+            for (0..valid_zeros) |i| {
+                if (hashed_block[i] != 0) {
+                    zero_correct = false;
+                }
+            }
+            if (zero_correct) {
+                valid = true;
+            }
+        }
+        print("Answer: {d}\n\n", .{ self.nonce });
+        print("Hash Bytes: {any}\n\n", .{ self.hash() });
+    }
 };
 pub const Chain = struct {
     chain: std.ArrayList(Block) = undefined,
+    valid_zeros: u8,
     pub fn init(self: *Chain) !void {
         const keys = try Ed25519.KeyPair.create(null);
         try self.chain.append(Block{
@@ -38,15 +61,29 @@ pub const Chain = struct {
     }
     pub fn add(self: *Chain, transaction: Transaction, senders_public_key: Ed25519.PublicKey, signature: Ed25519.Signature) !void {
         try signature.verify(asBytes(&transaction), senders_public_key);
-        try self.chain.append(Block{
+        var new_block = Block{
             .previous_hash = self.getLastBlock().hash(),
             .transaction = transaction,
             .timestamp = std.time.nanoTimestamp(),
-        });
+        };
+        new_block.mine(self.valid_zeros);
+        const hashed_block = new_block.hash();
+        var zero_correct = true;
+        for (0..self.valid_zeros) |i| {
+            if (hashed_block[i] != 0) {
+                zero_correct = false;
+            }
+        }
+        if (zero_correct) {
+            try self.chain.append(new_block);
+        } else {
+            print("BLOCK NOT VALID", .{});
+        }
     }
     pub fn getLastBlock(self: Chain) Block {
         return self.chain.getLast();
     }
+
 };
 pub const Wallet = struct {
     key_pair: Ed25519.KeyPair = undefined,
