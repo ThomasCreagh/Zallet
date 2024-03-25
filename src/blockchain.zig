@@ -91,7 +91,7 @@ pub const Wallet = struct {
         self.key_pair = try Ed25519.KeyPair.create(null);
     }
     pub fn sendMoney(self: Wallet, chain: *Chain, amount: u64, payee_public_key: Ed25519.PublicKey) !void {
-        print("Trying to send {d}bucks from {any} to {any}\n\n", .{ amount, self.key_pair.public_key, payee_public_key });
+        // print("Trying to send {d}bucks from {any} to {any}\n\n", .{ amount, self.key_pair.public_key, payee_public_key });
         const wallet_amount = self.getMoney(chain.*);
         if (amount > wallet_amount) {
             print("NOT ENOUGH FUNDS", .{});

@@ -6,7 +6,7 @@ const print = std.debug.print;
 pub fn main() !void {
     var block_chain = blockchain.Chain{
         .chain = std.ArrayList(blockchain.Block).init(std.heap.page_allocator),
-        .valid_zeros = 2, // 1 = 8 bits, 2 = 16 bits, 3 = 24 bits
+        .valid_zeros = 3, // 1 = 8 bits, 2 = 16 bits, 3 = 24 bits
     };
     defer block_chain.chain.deinit();
     try block_chain.init();
