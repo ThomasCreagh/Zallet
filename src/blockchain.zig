@@ -52,7 +52,7 @@ pub const Chain = struct {
         try self.chain.append(Block{
             .previous_hash = null,
             .transaction = Transaction{
-                .amount = 100,
+                .amount = 0,
                 .payer = keys.public_key,
                 .payee = keys.public_key,
             },
@@ -74,11 +74,11 @@ pub const Chain = struct {
                 zero_correct = false;
             }
         }
-        if (zero_correct) {
-            try self.chain.append(new_block);
-        } else {
+        if (!zero_correct) {
             print("BLOCK NOT VALID", .{});
+            return;
         }
+        try self.chain.append(new_block);
     }
     pub fn getLastBlock(self: Chain) Block {
         return self.chain.getLast();
@@ -92,6 +92,11 @@ pub const Wallet = struct {
     }
     pub fn sendMoney(self: Wallet, chain: *Chain, amount: u64, payee_public_key: Ed25519.PublicKey) !void {
         print("Trying to send {d}bucks from {any} to {any}\n\n", .{ amount, self.key_pair.public_key, payee_public_key });
+        const wallet_amount = self.getMoney(chain.*);
+        if (amount > wallet_amount) {
+            print("NOT ENOUGH FUNDS", .{});
+            return;
+        }
         const transaction = Transaction{
             .amount = amount,
             .payer = self.key_pair.public_key,
@@ -99,5 +104,18 @@ pub const Wallet = struct {
         };
         const signature = try self.key_pair.sign(asBytes(&transaction), null); // this is a deterministic signiture
         try chain.add(transaction, self.key_pair.public_key, signature);
+    }
+    pub fn getMoney(self: Wallet, chain: Chain) u64 {
+        var wallet_amount: u64 = 1000; // starting out with 1000 bucks each
+        for (chain.chain.items) |block| {
+            const transaction = block.transaction;
+            if (std.mem.eql(u8, &transaction.payee.toBytes(), &self.key_pair.public_key.toBytes())) {
+                wallet_amount += transaction.amount;
+            }
+            if (std.mem.eql(u8, &transaction.payer.toBytes(), &self.key_pair.public_key.toBytes())) {
+                wallet_amount -= transaction.amount;
+            }
+        }
+        return wallet_amount;
     }
 };
